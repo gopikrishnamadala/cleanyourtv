@@ -253,7 +253,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private float density;
     /** Module cards (res/values/config.xml, module_cards): discovered on resume, shown only after the owner's Show. */
     private boolean moduleCards;
-    /** config settings_key_keycodes / settings_key_panel, so the Settings button works on Home without HomeKeyService. */
+    /** Additional config settings_key_keycodes; the standard KEYCODE_SETTINGS works on Home without HomeKeyService. */
     private int[] settingsKeycodes = new int[0];
     private boolean settingsKeyPanel;
     private boolean settingsKeyClearTask;
@@ -1392,24 +1392,24 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     /**
-     * A Settings button sent as a keycode (settings_key_keycodes, e.g. 83 on TCL Google TV remotes) opens the same
-     * thing HomeKeyService would. While that service runs it consumes the key first; without it (not enabled,
-     * or switched off by a force-stop) the stock launcher that used to handle the key is gone, and the button did
-     * nothing even on Home.
+     * The standard Settings key and configured keycodes (e.g. 83 on TCL Google TV remotes) open the same thing
+     * HomeKeyService would. While that service runs it consumes the key first; without it, these keys still work
+     * on Home even though the stock launcher that used to handle them is gone.
      */
     private boolean handleSettingsKey(KeyEvent event) {
+        boolean isSettingsKey = event.getKeyCode() == KeyEvent.KEYCODE_SETTINGS;
         for (int code : settingsKeycodes) {
-            if (event.getKeyCode() != code) continue;
-            if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
-                Intent settings = settingsKeyPanel ? new Intent(this, QuickSettingsActivity.class)
-                        : systemIntent(Settings.ACTION_SETTINGS);
-                // settings_key_clear_task, as in HomeKeyService: Back from Settings goes Home, not to a vendor page.
-                if (settingsKeyClearTask && !settingsKeyPanel) settings.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                open(settings);
-            }
-            return true;
+            if (event.getKeyCode() == code) isSettingsKey = true;
         }
-        return false;
+        if (!isSettingsKey) return false;
+        if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
+            Intent settings = settingsKeyPanel ? new Intent(this, QuickSettingsActivity.class)
+                    : systemIntent(Settings.ACTION_SETTINGS);
+            // settings_key_clear_task, as in HomeKeyService: Back from Settings goes Home, not to a vendor page.
+            if (settingsKeyClearTask && !settingsKeyPanel) settings.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            open(settings);
+        }
+        return true;
     }
 
     // ---- reorder ---------------------------------------------------------------------------------
